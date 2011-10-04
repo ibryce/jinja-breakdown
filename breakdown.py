@@ -53,6 +53,7 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return self.not_found()
     
     def serve_template(self, path):
+        """ Render a template file using jinja2 """
         try:
             # Attempt to open template
             template = env.get_template(path)
