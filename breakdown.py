@@ -60,12 +60,12 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # Send a success HTML header
             self.send_response(httplib.OK)
-            self.send_header('Content-Type', 'text/html')
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
 
             # Render the template and write to stream
             data = template.render(base_context)
-            self.wfile.write(data)
+            self.wfile.write(data.encode('utf-8'))
             return
 
         except jinja2.TemplateNotFound:
@@ -88,7 +88,10 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return self.serve_template(self.path)
         else:
             # Finally try appending .html to the template
-            return self.serve_template(self.path + '.html')
+            path = self.path
+            if path.endswith('/'):
+                path = path[:-1]
+            return self.serve_template(path + '.html')
 
 if __name__ == '__main__':
     # Setup paths
