@@ -19,14 +19,11 @@ import BaseHTTPServer
 # Server settings
 ADDR = ''
 PORT = 5000
-MEDIA_URL = '/static/'
-
-# Paths to try (in order) for root request
-index_defs = ['index.html']
+STATIC_URL = '/static/'
 
 # Base context for templates
 base_context = {
-    'MEDIA_URL': MEDIA_URL
+    'STATIC_URL': STATIC_URL,
 }
 
 class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -35,12 +32,13 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def not_found(self):
         """ Standard 404 response """
         self.send_error(httplib.NOT_FOUND, 'Document not found: %s' % self.path)
+        return False
 
     def serve_static(self, path):
         """ Return data from path based on its guessed MIME Type """
         try:
             # Attempt to open path
-            file = open(os.path.join(static_path, path))
+            file = open(get_static(path))
 
             # Send a successful header with guessed mimetype
             self.send_response(httplib.OK)
@@ -70,43 +68,32 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.wfile.write(data.encode('utf-8'))
             return
 
-        except jinja2.TemplateNotFound:
+        except (jinja2.TemplateNotFound, IOError):
             return self.not_found()
 
     def do_GET(self):
         """ Handle a GET request """
-        if self.path.startswith(MEDIA_URL):
+        if self.path.startswith(STATIC_URL):
             # Serve as static
-            return self.serve_static(os.path.relpath(self.path, MEDIA_URL))
-        elif self.path == '/':
-            # Try index defaults
-            for file in index_defs:
-                if os.path.exists(os.path.join(template_path, file)):
-                    return self.serve_template(file)
-            return self.send_error(httplib.NOT_FOUND, 'Couldn\'t find an index document: ' 
-                                   + ', '.join(index_defs))
+            return self.serve_static(os.path.relpath(self.path, STATIC_URL))
         elif self.path.endswith('.html'):
-            # Server as template
+            # Serve as template
             return self.serve_template(self.path)
         else:
-            # Finally try appending .html to the template
-            path = self.path
-            if path.endswith('/'):
-                path = path[:-1]
-            return self.serve_template(path + '.html')
+            # Try appending /index.html, or .html
+            try:
+                path = self.path
+                if not path.endswith('/'):
+                    path = path + '/'
+                env.get_template(path + 'index.html')
+                self.serve_template(path + 'index.html')
+            except jinja2.TemplateNotFound:
+                path = self.path
+                if path.endswith('/'):
+                    path = path[:-1]
+                self.serve_template(path + '.html')
 
-def main():
-    # Validate paths
-    if not os.path.exists(template_path):
-        print 'Warning: unable to find template directory', template_path
-    else:
-        print 'Serving templates from', template_path
-    if not os.path.exists(static_path):
-        print 'Warning: unable to find static data directory', static_path
-    else:
-        print 'Serving static data from', static_path
-
-    # Run server
+def run_server():
     try:
         server = BaseHTTPServer.HTTPServer((ADDR, PORT), BreakdownHandler)
         print 'Server listening on port %s...' % PORT
@@ -115,6 +102,14 @@ def main():
         print 'Unable to bind socket (perhaps another server is running?)'
 
 
+def get_static(path):
+    """ Try to retrieve a static file by looking through static_dirs in order """
+    for dir in static_dirs:
+        fullpath = os.path.join(dir, path)
+        if os.path.exists(fullpath):
+            return fullpath
+    raise IOError
+
 def ver(self, opt, value, parser):
     print '.'.join(map(str, VERSION))
     sys.exit()
@@ -122,6 +117,10 @@ def ver(self, opt, value, parser):
 if __name__ == '__main__':
     # Populate options
     op = optparse.OptionParser(usage='%prog (PATH) [OPTIONS]')
+    op.add_option('-o', '--old', action='store_true', dest='old', 
+                  help='use single toplevel templates and static directories')
+    op.add_option('-m', '--media', action='store_true', dest='media',
+                  help='treat MEDIA_URL as STATIC_URL in templates')
     op.add_option('-v', '--version', action='callback', 
                   help='display the version number and exit', callback=ver)
 
@@ -129,17 +128,46 @@ if __name__ == '__main__':
     (options, args) = op.parse_args()
 
     # Setup path globals
-    if len(args) > 1:
+    if len(args) > 0:
         root = args[0]
     else:
         root = os.getcwd()
-    
     root = os.path.abspath(root)
-    static_path = os.path.join(root, 'static')
-    template_path = os.path.join(root, 'templates')
+
+    if options.media:
+        # Update context
+        base_context['MEDIA_URL'] = STATIC_URL
+
+    if options.old:
+        # Don't use apps, use single templates and static directories
+        template_dirs = [os.path.join(root, 'templates')]
+        if not os.path.exists(template_dirs[0]):
+            print 'No template directory found at', template_dirs[0]
+            sys.exit(1)
+        static_dirs = [os.path.join(root, 'static')]
+        if not os.path.exists(static_dirs[0]):
+            print 'No static directory found at', static_dirs[0]
+            sys.exit(1)
+    else:
+        # Build apps list
+        app_dirs = []
+        if not os.path.exists(os.path.join(root, 'apps')):
+            print('No apps directory found!  Make sure to run breakdown from the '
+            'project root, or specify a project root as an argument.  If your '
+            'templates are in toplevel, try the `--old` option')
+            sys.exit(2)
+        else:
+            appspath = os.path.join(root, 'apps')
+            files = [os.path.join(appspath, file) for file in os.listdir(appspath) if not
+                     file.startswith('.')]
+            app_dirs = filter(os.path.isdir, files)
+
+        # Setup template and static dirs
+        template_dirs = [os.path.join(dir, 'templates') for dir in app_dirs]
+        static_dirs = [os.path.join(dir, 'static') for dir in app_dirs]
 
     # Setup jinja2 global
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_path))
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
 
     # Run program
-    main()
+    run_server()
