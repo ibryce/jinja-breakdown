@@ -5,9 +5,11 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
+VERSION = (0, 2, 0)
 
 import os
 import sys
+import optparse
 import jinja2
 import httplib
 import mimetypes
@@ -93,17 +95,7 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 path = path[:-1]
             return self.serve_template(path + '.html')
 
-if __name__ == '__main__':
-    # Setup paths
-    if len(sys.argv) > 1:
-        root = sys.argv[1]
-    else:
-        root = os.getcwd()
-    
-    root = os.path.abspath(root)
-    static_path = os.path.join(root, 'static')
-    template_path = os.path.join(root, 'templates')
-
+def main():
     # Validate paths
     if not os.path.exists(template_path):
         print 'Warning: unable to find template directory', template_path
@@ -114,12 +106,40 @@ if __name__ == '__main__':
     else:
         print 'Serving static data from', static_path
 
-    # Setup jinja2
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_path))
-
+    # Run server
     try:
         server = BaseHTTPServer.HTTPServer((ADDR, PORT), BreakdownHandler)
         print 'Server listening on port %s...' % PORT
         server.serve_forever()
     except socket.error:
         print 'Unable to bind socket (perhaps another server is running?)'
+
+
+def ver(self, opt, value, parser):
+    print '.'.join(map(str, VERSION))
+    sys.exit()
+
+if __name__ == '__main__':
+    # Populate options
+    op = optparse.OptionParser(usage='%prog (PATH) [OPTIONS]')
+    op.add_option('-v', '--version', action='callback', 
+                  help='display the version number and exit', callback=ver)
+
+    # Parse arguments
+    (options, args) = op.parse_args()
+
+    # Setup path globals
+    if len(args) > 1:
+        root = args[0]
+    else:
+        root = os.getcwd()
+    
+    root = os.path.abspath(root)
+    static_path = os.path.join(root, 'static')
+    template_path = os.path.join(root, 'templates')
+
+    # Setup jinja2 global
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_path))
+
+    # Run program
+    main()
