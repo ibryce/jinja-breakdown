@@ -32,14 +32,14 @@ Once breakdown is running, it will print the local URL the webserver is listenin
 
 You can now view templates in your browser by navigating to http://127.0.0.1:5000.  However, you won't see anything here unless one of your template directories contains a file named ``index.html``.  The URL of any template (besides ``index.html``) will be identical to its filename, with all relative paths preserved.  Below is an example of template filenames and their corresponding URL on the local server:
 
-  ==================== ====================================
-  **Template**         **URL**
-  -------------------- ------------------------------------
-  index.html           http://127.0.0.1:5000/
-  article.html         http://127.0.0.1:5000/article
-  blog/index.html      http://127.0.0.1:5000/blog
-  blog/post.html       http://127.0.0.1:5000/blog/post
-  ==================== ====================================
+==================== ====================================
+**Template**         **URL**
+-------------------- ------------------------------------
+index.html           http://127.0.0.1:5000/
+article.html         http://127.0.0.1:5000/article
+blog/index.html      http://127.0.0.1:5000/blog
+blog/post.html       http://127.0.0.1:5000/blog/post
+==================== ====================================
 
 *Note: The server will accept template URL's with or without .html appended to them*
     
