@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     # Metadata
     name='breakdown',
-    version='0.9.1',
+    version='0.9.2',
     description='Lightweight jinja2 template prototyping server',
     author='Concentric Sky',
     author_email='jbothun@concentricsky.com',
@@ -21,5 +21,5 @@ setup(
     install_requires=['jinja2>=2.6'],
 
     # Program data
-    scripts=['scripts/breakdown.py']
+    scripts=['scripts/breakdown']
 )

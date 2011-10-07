@@ -5,7 +5,7 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
-VERSION = (0, 9, 1)
+VERSION = (0, 9, 2)
 
 import os
 import sys
@@ -25,6 +25,10 @@ STATIC_URL = '/static/'
 base_context = {
     'STATIC_URL': STATIC_URL,
 }
+
+# Server directories
+template_dirs = []
+static_dirs = []
 
 class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """ Custom request handler """
@@ -96,7 +100,7 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 def run_server():
     try:
         server = BaseHTTPServer.HTTPServer((ADDR, PORT), BreakdownHandler)
-        print 'Server listening on port %s...' % PORT
+        print 'Server running at http://127.0.0.1:%s ...' % PORT
         server.serve_forever()
     except socket.error:
         print 'Unable to bind socket (perhaps another server is running?)'
@@ -114,13 +118,19 @@ def ver(self, opt, value, parser):
     print '.'.join(map(str, VERSION))
     sys.exit()
 
+def register_template_dir(path):
+    print 'Serving templates from', path
+    template_dirs.append(path)
+
+def register_static_dir(path):
+    print 'Serving static files from', path
+    static_dirs.append(path)
+
 if __name__ == '__main__':
     # Populate options
     op = optparse.OptionParser(usage='%prog (PATH) [OPTIONS]')
-    op.add_option('-p', '--port', dest='port', help='run server on an '
+    op.add_option('', '--port', dest='port', help='run server on an '
                   'alternate port (default is 5000')
-    op.add_option('-o', '--old', action='store_true', dest='old', 
-                  help='use single toplevel templates and static directories')
     op.add_option('-m', '--media', action='store_true', dest='media',
                   help='treat MEDIA_URL as STATIC_URL in templates')
     op.add_option('-v', '--version', action='callback', 
@@ -150,33 +160,37 @@ if __name__ == '__main__':
             print 'invalid port'
             sys.exit(2)
 
-    if options.old:
-        # Don't use apps, use single templates and static directories
-        template_dirs = [os.path.join(root, 'templates')]
-        if not os.path.exists(template_dirs[0]):
-            print 'No template directory found at', template_dirs[0]
-            sys.exit(1)
-        static_dirs = [os.path.join(root, 'static')]
-        if not os.path.exists(static_dirs[0]):
-            print 'No static directory found at', static_dirs[0]
-            sys.exit(1)
-    else:
-        # Build apps list
-        app_dirs = []
-        if not os.path.exists(os.path.join(root, 'apps')):
-            print('No apps directory found!  Make sure to run breakdown from the '
-            'project root, or specify a project root as an argument.  If your '
-            'templates are in toplevel, try the `--old` option')
-            sys.exit(2)
-        else:
-            appspath = os.path.join(root, 'apps')
-            files = [os.path.join(appspath, file) for file in os.listdir(appspath) if not
-                     file.startswith('.')]
-            app_dirs = filter(os.path.isdir, files)
+    # Resolve directory paths by autodetection
+
+    if os.path.exists(os.path.join(root, 'apps')):
+        # Try django project structure
+        appspath = os.path.join(root, 'apps')
+        files = [os.path.join(appspath, file) for file in os.listdir(appspath) if not
+                 file.startswith('.')]
+        app_dirs = filter(os.path.isdir, files)
 
         # Setup template and static dirs
-        template_dirs = [os.path.join(dir, 'templates') for dir in app_dirs]
-        static_dirs = [os.path.join(dir, 'static') for dir in app_dirs]
+        for dir in app_dirs:
+            t = os.path.join(dir, 'templates')
+            s = os.path.join(dir, 'static')
+            if os.path.exists(t):
+                register_template_dir(t)
+            if os.path.exists(s):
+                register_static_dir(s)
+    else:
+        # Try simple directory structure--templates and static in toplevel
+        t = os.path.join(root, 'templates')
+        s = os.path.join(root, 'static')
+        if os.path.exists(t):
+                register_template_dir(t)
+        if os.path.exists(s):
+                register_static_dir(s)
+    
+    if len(template_dirs) < 1:
+        print('No template directories found.  Make sure to run breakdown from a project '
+              'root, or specify the path to a project root as an argument.  See the README '
+              'for a usage guide.')
+        sys.exit(1)
 
     # Setup jinja2 global
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
