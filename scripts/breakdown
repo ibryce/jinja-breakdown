@@ -129,8 +129,8 @@ def register_static_dir(path):
 if __name__ == '__main__':
     # Populate options
     op = optparse.OptionParser(usage='%prog (PATH) [OPTIONS]')
-    op.add_option('', '--port', dest='port', help='run server on an '
-                  'alternate port (default is 5000')
+    op.add_option('-p', '--port', dest='port', help='run server on an '
+                  'alternate port (default is 5000)')
     op.add_option('-m', '--media', action='store_true', dest='media',
                   help='treat MEDIA_URL as STATIC_URL in templates')
     op.add_option('-v', '--version', action='callback', 
