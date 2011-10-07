@@ -5,9 +5,10 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
-VERSION = (0, 9, 2)
+VERSION = (0, 9, 3)
 
 import os
+import errno
 import sys
 import optparse
 import jinja2
@@ -97,6 +98,15 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     path = path[:-1]
                 self.serve_template(path + '.html')
 
+def mkdirp(path):
+    try:
+        os.makedirs(path)
+    except OSError, e:
+        if e.errno == errno.EEXIST:
+            pass
+        else: 
+            raise
+
 def run_server():
     try:
         server = BaseHTTPServer.HTTPServer((ADDR, PORT), BreakdownHandler)
@@ -118,12 +128,44 @@ def ver(self, opt, value, parser):
     print '.'.join(map(str, VERSION))
     sys.exit()
 
+def export(outroot):
+    """ Render the template tree as static HTML """
+    if not os.path.exists(outroot):
+        try:
+            os.makedirs(outroot)
+        except OSError, e:
+            print 'Unable to create directory', e
+            sys.exit(1)
+    if not os.access(outroot, os.W_OK):
+        print 'Unable to write to output directory'
+        sys.exit(1)
+    
+    # Step through templates
+    for dir in template_dirs:
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                if file.endswith('.html'):
+                    relpath = os.path.normpath(os.path.join(os.path.relpath(root, dir), file))
+                    outpath = os.path.join(outroot, relpath)
+                    try:
+                        # Create the parent directory
+                        mkdirp(os.path.dirname(outpath))
+
+                        # Render the template
+                        t = env.get_template(relpath)
+                        data = t.render(base_context)
+                        fh = open(outpath, 'w')
+                        fh.write(data.encode('utf-8'))
+                        fh.close()
+                        print 'Rendered template', outpath
+
+                    except jinja2.TemplateNotFound:
+                        print 'Error loading template named', relpath
+
 def register_template_dir(path):
-    print 'Serving templates from', path
     template_dirs.append(path)
 
 def register_static_dir(path):
-    print 'Serving static files from', path
     static_dirs.append(path)
 
 if __name__ == '__main__':
@@ -133,8 +175,11 @@ if __name__ == '__main__':
                   'alternate port (default is 5000)')
     op.add_option('-m', '--media', action='store_true', dest='media',
                   help='treat MEDIA_URL as STATIC_URL in templates')
-    op.add_option('-v', '--version', action='callback', 
-                  help='display the version number and exit', callback=ver)
+    op.add_option('-e', '--export', dest='export',
+                  help='render templates to static html '
+                  'instead of running the server. (experimental)')
+    op.add_option('-v', '--version', action='callback', callback=ver,
+                  help='display the version number and exit')
 
     # Parse arguments
     (options, args) = op.parse_args()
@@ -185,7 +230,7 @@ if __name__ == '__main__':
                 register_template_dir(t)
         if os.path.exists(s):
                 register_static_dir(s)
-    
+
     if len(template_dirs) < 1:
         print('No template directories found.  Make sure to run breakdown from a project '
               'root, or specify the path to a project root as an argument.  See the README '
@@ -196,4 +241,10 @@ if __name__ == '__main__':
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
 
     # Run program
-    run_server()
+    if options.export:
+        export(options.export)
+    else:
+        # Show directories
+        print 'Serving templates from:\n  ' + '\n  '.join(template_dirs) + '\n'
+        print 'Serving static data from:\n  ' + '\n  '.join(static_dirs) + '\n'
+        run_server()

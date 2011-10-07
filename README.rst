@@ -18,10 +18,14 @@ Or, you can specify the path to a directory containing ``templates`` and ``stati
 Breakdown will also work with a django project structure.  If the project path contains an ``apps`` directory, breakdown will automatically detect this and combine the ``static`` and ``templates`` directories for each django app.  You'll also get a listing of the directories it found.  Here's the output of running breakdown on a django project with two apps: 'mainsite' and 'blog'::
 
     $ breakdown ~/django/myproject
-    Serving templates from /Users/josh/django/myproject/apps/mainsite/templates
-    Serving static files from /Users/josh/django/myproject/apps/mainsite/static
-    Serving templates from /Users/josh/django/myproject/apps/blog/templates
-    Serving static files from /Users/josh/django/myproject/apps/blog/static
+    Serving templates from:
+      /Users/josh/django/myproject/apps/blog/templates
+      /Users/josh/django/myproject/apps/mainsite/templates
+
+    Serving static data from:
+      /Users/josh/django/myproject/apps/blog/static
+      /Users/josh/django/myproject/apps/mainsite/static
+
 
 Viewing Templates
 -----------------
@@ -50,5 +54,9 @@ Advanced
   -h, --help            show this help message and exit
   -p PORT, --port=PORT  run server on an alternate port (default is 5000)
   -m, --media           treat MEDIA_URL as STATIC_URL in templates
+  -e EXPORT, --export=EXPORT
+                        render templates to static html instead of running the
+                        server. (experimental)
   -v, --version         display the version number and exit
+
 
