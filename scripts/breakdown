@@ -16,6 +16,7 @@ import httplib
 import mimetypes
 import socket
 import BaseHTTPServer
+import tempfile
 
 # Server settings
 ADDR = ''
@@ -31,6 +32,9 @@ base_context = {
 template_dirs = []
 static_dirs = []
 
+# Temporary directory to cache sample images
+image_cache = tempfile.mkdtemp()
+
 
 # --------- Jinja2 functions ------------
 
@@ -39,12 +43,23 @@ import Image
 import breakdown
 
 def ext_image(width, height):
-    sample = breakdown.pkg_path('img/sample.png')
-    if not os.path.exists(sample):
-        return
-    else:
-        print sample
-        return Markup(u'<em>image!!!</em')
+    # Create unique path
+    size = (width, height)
+    filename = '%sx%s.png' % (width, height)
+    path = os.path.join(image_cache, filename)
+
+    # Check if image has already been created
+    if not os.path.exists(path):
+        # Generate new image
+        sample = breakdown.pkg_path('img/sample.png')
+        if not os.path.exists(sample):
+            return Markup(u'<img>')
+        else:
+            source = Image.open(sample)
+            scaled = source.resize(size, Image.BICUBIC)
+            scaled.save(path)
+
+    return Markup(u'<img src="%s%s">' % (STATIC_URL, filename))
 
 # ---------------------------------------
 
@@ -266,10 +281,16 @@ if __name__ == '__main__':
 
     # Run program
     if options.export:
+        # Export static HTML
         export(options.export)
     else:
         # Show directories
         print 'Serving templates from:\n  ' + '\n  '.join(template_dirs) + '\n'
         if len(static_dirs) > 0:
             print 'Serving static data from:\n  ' + '\n  '.join(static_dirs) + '\n'
+        
+        # Inject our custom image directory for static media
+        static_dirs.append(image_cache)
+
+        # Run server
         run_server()
