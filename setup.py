@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from distutils.core import setup
 
 setup(
     # Metadata
     name='breakdown',
-    version='0.9.3',
+    version='0.9.4',
     description='Lightweight jinja2 template prototyping server',
     author='Concentric Sky',
     author_email='jbothun@concentricsky.com',
@@ -18,8 +18,9 @@ setup(
         'Framework :: Django',
         'Topic :: Text Processing :: Markup :: HTML'
     ],
-    install_requires=['jinja2>=2.6'],
+    requires=['jinja2 (>=2.6)'],
 
     # Program data
-    scripts=['scripts/breakdown']
+    scripts=['scripts/breakdown'],
+    data_files=[('share/breakdown/img', ['img/sample.png'])],
 )
