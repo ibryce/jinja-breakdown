@@ -111,7 +111,11 @@ def run_server():
     try:
         server = BaseHTTPServer.HTTPServer((ADDR, PORT), BreakdownHandler)
         print 'Server running at http://127.0.0.1:%s ...' % PORT
-        server.serve_forever()
+        print 'Press CTRL+C to quit'
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            sys.exit()
     except socket.error:
         print 'Unable to bind socket (perhaps another server is running?)'
 
@@ -246,5 +250,6 @@ if __name__ == '__main__':
     else:
         # Show directories
         print 'Serving templates from:\n  ' + '\n  '.join(template_dirs) + '\n'
-        print 'Serving static data from:\n  ' + '\n  '.join(static_dirs) + '\n'
+        if len(static_dirs) > 0:
+            print 'Serving static data from:\n  ' + '\n  '.join(static_dirs) + '\n'
         run_server()
