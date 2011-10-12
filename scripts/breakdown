@@ -5,7 +5,7 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
-VERSION = (0, 9, 3)
+VERSION = (0, 9, 5)
 
 import os
 import errno
@@ -30,6 +30,24 @@ base_context = {
 # Server directories
 template_dirs = []
 static_dirs = []
+
+
+# --------- Jinja2 functions ------------
+
+Markup = jinja2._markupsafe.Markup
+import Image
+import breakdown
+
+def ext_image(width, height):
+    sample = breakdown.pkg_path('img/sample.png')
+    if not os.path.exists(sample):
+        return
+    else:
+        print sample
+        return Markup(u'<em>image!!!</em')
+
+# ---------------------------------------
+
 
 class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     """ Custom request handler """
@@ -173,6 +191,7 @@ def register_static_dir(path):
     static_dirs.append(path)
 
 if __name__ == '__main__':
+
     # Populate options
     op = optparse.OptionParser(usage='%prog (PATH) [OPTIONS]')
     op.add_option('-p', '--port', dest='port', help='run server on an '
@@ -241,8 +260,9 @@ if __name__ == '__main__':
               'for a usage guide.')
         sys.exit(1)
 
-    # Setup jinja2 global
+    # Setup jinja2 global and register extension functions
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
+    env.globals['image'] = ext_image
 
     # Run program
     if options.export:
