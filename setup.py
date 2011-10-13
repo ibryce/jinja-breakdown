@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     # Metadata
     name='breakdown',
-    version='0.9.5',
+    version='0.9.6',
     description='Lightweight jinja2 template prototyping server',
     author='Concentric Sky',
     author_email='jbothun@concentricsky.com',

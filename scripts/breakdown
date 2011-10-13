@@ -5,7 +5,7 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
-VERSION = (0, 9, 5)
+VERSION = (0, 9, 6)
 
 import os
 import errno
