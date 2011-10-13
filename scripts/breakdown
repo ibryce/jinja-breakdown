@@ -14,6 +14,8 @@ import optparse
 import jinja2
 import httplib
 import mimetypes
+import string
+import random
 import socket
 import BaseHTTPServer
 import tempfile
@@ -43,6 +45,7 @@ import Image
 import breakdown
 
 def ext_image(width, height):
+    """ Generate a custom-sized sample image """
     # Create unique path
     size = (width, height)
     filename = '%sx%s.png' % (width, height)
@@ -60,6 +63,49 @@ def ext_image(width, height):
             scaled.save(path)
 
     return Markup(u'<img src="%s%s">' % (STATIC_URL, filename))
+
+def ext_greeking(mode=None):
+    """ Generate a block of various HTML text """
+    # Get a blob of lipsum
+    blob = env.globals['lipsum'](html=False, n=1, min=50, max=100).split(' ')
+
+    # Wrap text in HTML elements at random points
+    wrappers = [
+        ('<strong>', '</strong>'),
+        ('<em>', '</em>'),
+        ('<code>', '</code>'),
+        ('<a href="#">', '</a>'),
+    ]
+    random.shuffle(wrappers)
+    thresh = 7
+    pointers = random.sample(xrange(len(blob)/thresh), len(wrappers))
+    for i, ptr in enumerate(pointers):
+        ptr = ptr * thresh
+        length = random.randint(2, thresh - 2)
+        blob[ptr] = wrappers[i][0] + blob[ptr]
+        blob[ptr+length] = wrappers[i][1] + blob[ptr+length]
+
+    html = ' '.join(blob)
+
+    # Generate random lists
+    lists = []
+    for type in ('ul', 'ol'):
+        items = []
+        for i in range(random.randint(3, 4)):
+            items.append('<li>%s</li>' % env.globals['lipsum'](html=False, n=1, min=5, max=10))
+        lists.append(items)
+
+    html += """
+    <ul>
+        %s
+    </ul>
+
+    <ol>
+        %s
+    </ol>
+    """ % ('\n'.join(lists[0]), '\n'.join(lists[1]))
+
+    return Markup(unicode(html))
 
 # ---------------------------------------
 
@@ -278,6 +324,7 @@ if __name__ == '__main__':
     # Setup jinja2 global and register extension functions
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dirs))
     env.globals['image'] = ext_image
+    env.globals['greeking'] = ext_greeking
 
     # Run program
     if options.export:
