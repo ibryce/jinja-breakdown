@@ -85,7 +85,7 @@ def ext_greeking(mode=None):
         blob[ptr] = wrappers[i][0] + blob[ptr]
         blob[ptr+length] = wrappers[i][1] + blob[ptr+length]
 
-    html = ' '.join(blob)
+    html = '<p>' + ' '.join(blob) + '</p>'
 
     # Generate random lists
     lists = []
