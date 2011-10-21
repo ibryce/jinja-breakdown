@@ -7,6 +7,7 @@ setup(
     name='breakdown',
     version='0.9.6',
     description='Lightweight jinja2 template prototyping server',
+    long_description=open('README.rst').read(),
     author='Concentric Sky',
     author_email='jbothun@concentricsky.com',
     classifiers=[
