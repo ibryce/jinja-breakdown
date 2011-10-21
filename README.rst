@@ -54,9 +54,6 @@ Advanced
   -h, --help            show this help message and exit
   -p PORT, --port=PORT  run server on an alternate port (default is 5000)
   -m, --media           treat MEDIA_URL as STATIC_URL in templates
-  -e EXPORT, --export=EXPORT
-                        render templates to static html instead of running the
-                        server. (experimental)
   -v, --version         display the version number and exit
 
 
