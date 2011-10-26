@@ -5,7 +5,7 @@
     Lightweight jinja2 template prototyping server with support for
     some custom template tags
 """
-VERSION = (0, 9, 6)
+VERSION = (0, 9, 7)
 
 import os
 import errno
@@ -19,6 +19,7 @@ import random
 import socket
 import BaseHTTPServer
 import tempfile
+import clevercss
 
 # Server settings
 ADDR = ''
@@ -201,11 +202,39 @@ def run_server():
 
 def get_static(path):
     """ Try to retrieve a static file by looking through static_dirs in order """
+    # CSS files
+    if path.endswith('.css'):
+        # Look for matching clevercss
+        clever_name = path[:path.rfind('.css')] + '.clevercss'
+        try:
+            clever_path = get_static(clever_name)
+            compiled_path = clever_path[:clever_path.rfind('.clevercss')] + '.css'
+            # Compile the file if it doesn't exist or the mtime on clevercss is more recent
+            if not os.path.exists(compiled_path) or \
+                   os.stat(clever_path).st_mtime > os.stat(compiled_path).st_mtime:
+                return compile_clever_css(clever_path, compiled_path)
+        except IOError:
+            # .clevercss match doesn't exist for this file, continue
+            pass
+    
+    # All files
     for dir in static_dirs:
         fullpath = os.path.join(dir, path)
         if os.path.exists(fullpath):
             return fullpath
+    
+    # Nothing found
     raise IOError
+
+def compile_clever_css(src, dst):
+    fh = open(src)
+    source = fh.read()
+    fh.close()
+    css = clevercss.convert(source)
+    fh = open(dst, 'w')
+    fh.write(css)
+    fh.close()
+    return dst
 
 def ver(self, opt, value, parser):
     print '.'.join(map(str, VERSION))

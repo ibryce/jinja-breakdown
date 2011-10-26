@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     # Metadata
     name='breakdown',
-    version='0.9.6',
+    version='0.9.7',
     description='Lightweight jinja2 template prototyping server',
     long_description=open('README.rst').read(),
     author='Concentric Sky',
@@ -19,7 +19,7 @@ setup(
         'Framework :: Django',
         'Topic :: Text Processing :: Markup :: HTML'
     ],
-    install_requires=['jinja2>=2.6', 'PIL'],
+    install_requires=['jinja2>=2.6', 'CleverCSS', 'PIL'],
 
     # Program data
     scripts=['scripts/breakdown'],
