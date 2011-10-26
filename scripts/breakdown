@@ -123,7 +123,7 @@ class BreakdownHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """ Return data from path based on its guessed MIME Type """
         try:
             # Attempt to open path
-            file = open(get_static(path))
+            file = open(get_static(path), 'rb')
 
             # Send a successful header with guessed mimetype
             self.send_response(httplib.OK)
